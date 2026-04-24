@@ -26,7 +26,7 @@ class LangGraphAgent(Agent):
         self.graph = self._build_graph()
 
     def _build_graph(self) -> CompiledStateGraph:
-        state_graph = StateGraph(MessagesState)
+        state_graph = StateGraph(MessagesState)  # pyrefly: ignore[bad-specialization]
         state_graph.add_node("call_llm", self._call_llm)
 
         state_graph.add_edge(START, "call_llm")
