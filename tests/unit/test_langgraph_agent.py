@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import pytest
 from langchain_core.language_models.fake_chat_models import (
     FakeListChatModel,
@@ -10,7 +12,7 @@ from tests.fake import FakeLLM, fake_error_tool, fake_tool
 
 
 @pytest.fixture
-def setup_mock_llm():
+def setup_mock_llm() -> Callable[[str], FakeLLM]:
     def _setup(tool_name: str) -> FakeLLM:
         return FakeLLM(
             responses=[
@@ -41,7 +43,7 @@ def test_ok_response_from_langgraph_agent() -> None:
     assert agent_response.content == expected_response
 
 
-def test_tool_called_by_langgraph_agent(setup_mock_llm) -> None:
+def test_tool_called_by_langgraph_agent(setup_mock_llm: Callable) -> None:
     expected_response = "こんにちは!"
     llm = setup_mock_llm("fake_tool")
     agent = LangGraphAgent(llm, tools=[fake_tool])
@@ -51,7 +53,7 @@ def test_tool_called_by_langgraph_agent(setup_mock_llm) -> None:
     assert agent_response.content == expected_response
 
 
-def test_tool_called_invoke_error(setup_mock_llm) -> None:
+def test_tool_called_invoke_error(setup_mock_llm: Callable) -> None:
     expected_response = "こんにちは!"
     llm = setup_mock_llm("fake_error_tool")
     agent = LangGraphAgent(llm, tools=[fake_error_tool])
@@ -61,7 +63,7 @@ def test_tool_called_invoke_error(setup_mock_llm) -> None:
     assert agent_response.content == expected_response
 
 
-def test_invalid_tool_name(setup_mock_llm) -> None:
+def test_invalid_tool_name(setup_mock_llm: Callable) -> None:
     llm = setup_mock_llm("non_existent_tool")
     agent = LangGraphAgent(llm, tools=[fake_tool])
     agent_response = agent.invoke(

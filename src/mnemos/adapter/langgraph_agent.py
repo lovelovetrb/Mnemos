@@ -1,6 +1,6 @@
 """Langgraphを用いたエージェントの具体実装"""
 
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
@@ -10,6 +10,9 @@ from langgraph.graph.state import END, START, CompiledStateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
 from mnemos.protocols import Agent, Message
+
+if TYPE_CHECKING:
+    from langchain_core.runnables import Runnable
 
 
 class MessagesState(TypedDict):
@@ -23,7 +26,7 @@ class LangGraphAgent(Agent):
 
     def __init__(self, llm: BaseChatModel, tools: list | None = None) -> None:
         """LanggraphAgentのコンストラクタ"""
-        self.llm = llm
+        self.llm: Runnable = llm
         self.tools = tools
         if self.tools is not None:
             self.llm = llm.bind_tools(self.tools)
