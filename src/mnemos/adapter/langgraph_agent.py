@@ -1,11 +1,11 @@
 """Langgraphを用いたエージェントの具体実装"""
 
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Annotated, TypedDict
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import StateGraph
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph import StateGraph, add_messages
 from langgraph.graph.state import END, START, CompiledStateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 class MessagesState(TypedDict):
     """エージェントの状態を表すクラス"""
 
-    messages: list[BaseMessage]
+    messages: Annotated[list[BaseMessage], add_messages]
 
 
 class LangGraphAgent(Agent):
@@ -38,7 +38,7 @@ class LangGraphAgent(Agent):
         self._register_nodes(state_graph)
         self._register_edges(state_graph)
 
-        return state_graph.compile(checkpointer=MemorySaver())
+        return state_graph.compile(checkpointer=InMemorySaver())
 
     def _register_nodes(self, state_graph: StateGraph) -> None:
         state_graph.add_node("call_llm", self._call_llm)
