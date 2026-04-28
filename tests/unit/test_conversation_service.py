@@ -1,5 +1,5 @@
 from mnemos.core.conversation_service import ConversationService
-from tests.fake.fake_agent import FakeAgent
+from tests.fake import FakeAgent
 
 
 def test_conversation_service() -> None:
