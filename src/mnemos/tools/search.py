@@ -1,5 +1,5 @@
-"""DuckDuckGo検索ツール"""
+"""Tavily検索ツール"""
 
-from langchain_community.tools import DuckDuckGoSearchResults
+from langchain_tavily import TavilySearch
 
-search_tool = DuckDuckGoSearchResults()
+search_tool = TavilySearch(max_results=5, topic="general")
