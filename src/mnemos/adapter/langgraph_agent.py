@@ -1,11 +1,11 @@
 """Langgraphを用いたエージェントの具体実装"""
 
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Annotated, TypedDict
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import StateGraph
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph import StateGraph, add_messages
 from langgraph.graph.state import END, START, CompiledStateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
@@ -18,16 +18,22 @@ if TYPE_CHECKING:
 class MessagesState(TypedDict):
     """エージェントの状態を表すクラス"""
 
-    messages: list[BaseMessage]
+    messages: Annotated[list[BaseMessage], add_messages]
 
 
 class LangGraphAgent(Agent):
     """Langgraphを用いたエージェントの具体実装"""
 
-    def __init__(self, llm: BaseChatModel, tools: list | None = None) -> None:
+    def __init__(
+        self,
+        llm: BaseChatModel,
+        tools: list | None = None,
+        system_prompt: str | None = None,
+    ) -> None:
         """LanggraphAgentのコンストラクタ"""
         self.llm: Runnable = llm
         self.tools = tools
+        self.system_prompt = system_prompt
         if self.tools is not None:
             self.llm = llm.bind_tools(self.tools)
         self.graph = self._build_graph()
@@ -38,7 +44,7 @@ class LangGraphAgent(Agent):
         self._register_nodes(state_graph)
         self._register_edges(state_graph)
 
-        return state_graph.compile(checkpointer=MemorySaver())
+        return state_graph.compile(checkpointer=InMemorySaver())
 
     def _register_nodes(self, state_graph: StateGraph) -> None:
         state_graph.add_node("call_llm", self._call_llm)
@@ -55,7 +61,13 @@ class LangGraphAgent(Agent):
 
     def _call_llm(self, state: MessagesState) -> dict[str, list[AIMessage]]:
         """LLMを呼び出す関数"""
-        response = self.llm.invoke(state["messages"])
+        llm_input = state["messages"]
+        if self.system_prompt:
+            llm_input = [
+                SystemMessage(self.system_prompt, id="system_message"),
+                *llm_input,
+            ]
+        response = self.llm.invoke(llm_input)
         return {"messages": [response]}
 
     def invoke(self, message: Message, thread_id: str) -> Message:
