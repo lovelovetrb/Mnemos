@@ -2,5 +2,6 @@
 
 from mnemos.protocols.agent import Agent
 from mnemos.protocols.message import Message
+from mnemos.protocols.messaging_gateway import MessagingGateway
 
-__all__ = ["Agent", "Message"]
+__all__ = ["Agent", "Message", "MessagingGateway"]
