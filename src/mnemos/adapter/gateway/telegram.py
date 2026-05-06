@@ -8,6 +8,7 @@ from telegram.ext import (
     Application,
     ContextTypes,
     MessageHandler,
+    Updater,
     filters,
 )
 
@@ -36,15 +37,22 @@ class TelegramGateway(MessagingGateway):
         """Telegram Botのポーリングを開始する"""
         await self.app.initialize()
         await self.app.start()
-        await self.app.updater.start_polling()
+        await self._get_updater().start_polling()
         logger.info("Telegram Bot started")
 
     async def stop(self) -> None:
         """Telegram Botのポーリングを停止する"""
-        await self.app.updater.stop()
+        await self._get_updater().stop()
         await self.app.stop()
         await self.app.shutdown()
         logger.info("Telegram Bot stopped")
+
+    def _get_updater(self) -> Updater:
+        """Updaterを取得する。存在しない場合はRuntimeErrorを送出する。"""
+        if self.app.updater is None:
+            msg = "Updater is not available"
+            raise RuntimeError(msg)
+        return self.app.updater
 
     async def handle_message(self, message: str, thread_id: str) -> str:
         """メッセージを受信して応答を返す"""
