@@ -2,6 +2,7 @@ from collections.abc import Callable
 
 import pytest
 from langchain_core.messages import AIMessage
+from langgraph.checkpoint.memory import InMemorySaver
 
 from mnemos.adapter.langgraph_agent import LangGraphAgent
 from mnemos.protocols import Message
@@ -33,7 +34,7 @@ def setup_tool_use_mock_llm() -> Callable[[str], FakeLLM]:
 def test_ok_response_from_langgraph_agent() -> None:
     expected_response = "こんにちは!"
     llm = FakeLLM(responses=[AIMessage(content=expected_response)])
-    agent = LangGraphAgent(llm)
+    agent = LangGraphAgent(llm, checkpointer=InMemorySaver())
     agent_response = agent.invoke(
         Message(content="Hello, Agent!"), thread_id="test_thread"
     )
@@ -43,7 +44,7 @@ def test_ok_response_from_langgraph_agent() -> None:
 def test_tool_called_by_langgraph_agent(setup_tool_use_mock_llm: Callable) -> None:
     expected_response = "こんにちは!"
     llm = setup_tool_use_mock_llm("fake_tool")
-    agent = LangGraphAgent(llm, tools=[fake_tool])
+    agent = LangGraphAgent(llm, checkpointer=InMemorySaver(), tools=[fake_tool])
     agent_response = agent.invoke(
         Message(content="Call the tool!"), thread_id="test_thread"
     )
@@ -53,7 +54,7 @@ def test_tool_called_by_langgraph_agent(setup_tool_use_mock_llm: Callable) -> No
 def test_tool_called_invoke_error(setup_tool_use_mock_llm: Callable) -> None:
     expected_response = "こんにちは!"
     llm = setup_tool_use_mock_llm("fake_error_tool")
-    agent = LangGraphAgent(llm, tools=[fake_error_tool])
+    agent = LangGraphAgent(llm, checkpointer=InMemorySaver(), tools=[fake_error_tool])
     agent_response = agent.invoke(
         Message(content="Call the tool!"), thread_id="test_thread"
     )
@@ -62,7 +63,7 @@ def test_tool_called_invoke_error(setup_tool_use_mock_llm: Callable) -> None:
 
 def test_invalid_tool_name(setup_tool_use_mock_llm: Callable) -> None:
     llm = setup_tool_use_mock_llm("non_existent_tool")
-    agent = LangGraphAgent(llm, tools=[fake_tool])
+    agent = LangGraphAgent(llm, checkpointer=InMemorySaver(), tools=[fake_tool])
     agent_response = agent.invoke(
         Message(content="Call the tool!"), thread_id="test_thread"
     )
@@ -75,7 +76,9 @@ def test_system_prompt_is_passed_to_llm() -> None:
     expected_history_length = 2
 
     llm = FakeLLM(responses=[AIMessage(content="こんにちは!")])
-    agent = LangGraphAgent(llm, system_prompt=system_prompt)
+    agent = LangGraphAgent(
+        llm, checkpointer=InMemorySaver(), system_prompt=system_prompt
+    )
     agent.invoke(Message(content=human_message), thread_id="test_thread")
     llm_recive_content = [history.content for history in llm.histories[-1]]
 
@@ -92,7 +95,9 @@ def test_system_prompt_is_not_duplicated_in_history() -> None:
     expected_history_length = 4
 
     llm = FakeLLM(responses=[AIMessage(content=agent_resopnse_1)])
-    agent = LangGraphAgent(llm, system_prompt=system_prompt)
+    agent = LangGraphAgent(
+        llm, checkpointer=InMemorySaver(), system_prompt=system_prompt
+    )
     agent.invoke(Message(content=human_message_1), thread_id="test_thread")
     agent.invoke(Message(content=human_message_2), thread_id="test_thread")
     llm_recive_content = [history.content for history in llm.histories[-1]]

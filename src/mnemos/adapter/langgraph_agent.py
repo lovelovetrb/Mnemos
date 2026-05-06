@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Annotated, TypedDict
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
-from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import StateGraph, add_messages
 from langgraph.graph.state import END, START, CompiledStateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -27,6 +27,7 @@ class LangGraphAgent(Agent):
     def __init__(
         self,
         llm: BaseChatModel,
+        checkpointer: BaseCheckpointSaver,
         tools: list | None = None,
         system_prompt: str | None = None,
     ) -> None:
@@ -34,6 +35,7 @@ class LangGraphAgent(Agent):
         self.llm: Runnable = llm
         self.tools = tools
         self.system_prompt = system_prompt
+        self.checkpointer = checkpointer
         if self.tools is not None:
             self.llm = llm.bind_tools(self.tools)
         self.graph = self._build_graph()
@@ -44,7 +46,7 @@ class LangGraphAgent(Agent):
         self._register_nodes(state_graph)
         self._register_edges(state_graph)
 
-        return state_graph.compile(checkpointer=InMemorySaver())
+        return state_graph.compile(checkpointer=self.checkpointer)
 
     def _register_nodes(self, state_graph: StateGraph) -> None:
         state_graph.add_node("call_llm", self._call_llm)
