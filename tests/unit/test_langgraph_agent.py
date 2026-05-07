@@ -87,6 +87,22 @@ def test_system_prompt_is_passed_to_llm() -> None:
     assert len(llm_recive_content) == expected_history_length
 
 
+def test_stream_yields_tool_call_and_response(
+    setup_tool_use_mock_llm: Callable,
+) -> None:
+    llm = setup_tool_use_mock_llm("fake_tool")
+    agent = LangGraphAgent(llm, checkpointer=InMemorySaver(), tools=[fake_tool])
+    events = list(
+        agent.stream(Message(content="Call the tool!"), thread_id="test_thread")
+    )
+
+    assert len(events) == 2  # noqa: PLR2004
+    assert events[0].type == "tool_call_start"
+    assert "fake_tool" in events[0].data
+    assert events[1].type == "response"
+    assert events[1].data == "こんにちは!"
+
+
 def test_system_prompt_is_not_duplicated_in_history() -> None:
     system_prompt = "これはシステムプロンプトです。"
     human_message_1 = "Hello, Agent!"

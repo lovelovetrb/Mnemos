@@ -1,6 +1,7 @@
 """Langgraphを用いたエージェントの具体実装"""
 
-from typing import TYPE_CHECKING, Annotated, TypedDict
+from collections.abc import Generator
+from typing import TYPE_CHECKING, Annotated, Any, TypedDict
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
@@ -9,7 +10,7 @@ from langgraph.graph import StateGraph, add_messages
 from langgraph.graph.state import END, START, CompiledStateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
-from mnemos.protocols import Agent, Message
+from mnemos.protocols import Agent, AgentEvent, Message
 
 if TYPE_CHECKING:
     from langchain_core.runnables import Runnable
@@ -80,3 +81,26 @@ class LangGraphAgent(Agent):
         )
         last_message = response["messages"][-1]
         return Message(content=last_message.content)
+
+    def stream(self, message: Message, thread_id: str) -> Generator[AgentEvent]:
+        """メッセージを受け取り、処理中のイベントをストリーミングで返す関数"""
+        config = {"configurable": {"thread_id": thread_id}}
+        for chunk in self.graph.stream(
+            {"messages": [HumanMessage(content=message.content)]},
+            config=config,
+            stream_mode="updates",
+        ):
+            yield from self._chunk_to_events(chunk)
+
+    def _chunk_to_events(self, chunk: dict[str, Any]) -> Generator[AgentEvent]:
+        """LangGraphのストリームチャンクをAgentEventに変換する"""
+        if "call_llm" in chunk:
+            ai_message: AIMessage = chunk["call_llm"]["messages"][0]
+            if ai_message.tool_calls:
+                for tool_call in ai_message.tool_calls:
+                    yield AgentEvent(
+                        type="tool_call_start",
+                        data=f"{tool_call['name']}: {tool_call['args']}",
+                    )
+            elif ai_message.content:
+                yield AgentEvent(type="response", data=str(ai_message.content))

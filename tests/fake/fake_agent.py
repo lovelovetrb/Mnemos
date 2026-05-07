@@ -1,4 +1,6 @@
-from mnemos.protocols import Agent, Message
+from collections.abc import Generator
+
+from mnemos.protocols import Agent, AgentEvent, Message
 
 
 class FakeAgent(Agent):
@@ -11,3 +13,8 @@ class FakeAgent(Agent):
         self.received_message = message
         self.received_thread_id = thread_id
         return Message(content=self.response)
+
+    def stream(self, message: Message, thread_id: str) -> Generator[AgentEvent]:
+        self.received_message = message
+        self.received_thread_id = thread_id
+        yield AgentEvent(type="response", data=self.response)
