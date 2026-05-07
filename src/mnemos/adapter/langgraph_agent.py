@@ -103,4 +103,4 @@ class LangGraphAgent(Agent):
                         data=f"{tool_call['name']}: {tool_call['args']}",
                     )
             elif ai_message.content:
-                yield AgentEvent(type="response", data=ai_message.content)
+                yield AgentEvent(type="response", data=str(ai_message.content))
