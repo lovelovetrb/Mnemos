@@ -62,9 +62,7 @@ def test_conversation_history_persists_with_sqlite(
         agent2 = LangGraphAgent(llm2, checkpointer=checkpointer2)
         agent2.invoke(Message(content="発言2"), thread_id=thread_id)
 
-        state = agent2.graph.get_state(
-            {"configurable": {"thread_id": thread_id}}
-        )
+        state = agent2.graph.get_state({"configurable": {"thread_id": thread_id}})
         messages = state.values["messages"]
 
     assert len(messages) == expected_history_length
